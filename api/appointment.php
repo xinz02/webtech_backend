@@ -106,4 +106,45 @@ $app->get('/user/{id}/appointments', function(Request $request, Response $respon
         return $response->withHeader('Content-Type', 'application/json')->withStatus(500);
     }
 });
+
+$app->get('/dentist/{id}/appointments', function(Request $request, Response $response, $args) {
+    $db = new db();
+    $conn = $db->connect();
+    $dentistId = $args['id'];
+
+    try {
+        // Fetch user information
+        $sqlUser = "SELECT * FROM dentist WHERE dentistID = :dentistID";
+        $stmtUser = $conn->prepare($sqlUser);
+        $stmtUser->bindValue(':dentistID', $dentistId);
+        $stmtUser->execute();
+        $user = $stmtUser->fetch(PDO::FETCH_ASSOC);
+
+        if (!$user) {
+            $error = ['error' => 'User not found.'];
+            $response->getBody()->write(json_encode($error));
+            return $response->withHeader('Content-Type', 'application/json')->withStatus(404);
+        }
+
+        // Fetch appointments
+        $sqlAppointments = "SELECT * FROM appointment WHERE dentistID = :dentistID";
+        $stmtAppointments = $conn->prepare($sqlAppointments);
+        $stmtAppointments->bindValue(':dentistID', $dentistId);
+        $stmtAppointments->execute();
+        $appointments = $stmtAppointments->fetchAll(PDO::FETCH_ASSOC);
+
+        $result = [
+            'user' => $user,
+            'appointments' => $appointments
+        ];
+
+        $response->getBody()->write(json_encode($result));
+        return $response->withHeader('Content-Type', 'application/json')->withStatus(200);
+
+    } catch (PDOException $e) {
+        $error = ['error' => 'Database error: ' . $e->getMessage()];
+        $response->getBody()->write(json_encode($error));
+        return $response->withHeader('Content-Type', 'application/json')->withStatus(500);
+    }
+});
 ?>
