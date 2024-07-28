@@ -147,4 +147,32 @@ $app->get('/dentist/{id}/appointments', function(Request $request, Response $res
         return $response->withHeader('Content-Type', 'application/json')->withStatus(500);
     }
 });
+
+$app->delete('/appointment/{id}', function(Request $request, Response $response, $args) {
+    $db = new db();
+    $conn = $db->connect();
+    $appointmentId = $args['id'];
+
+    try {
+        // Delete the appointment
+        $sql = "DELETE FROM appointment WHERE appointmentID = :appointmentID";
+        $stmt = $conn->prepare($sql);
+        $stmt->bindValue(':appointmentID', $appointmentId);
+        $stmt->execute();
+
+        if ($stmt->rowCount() > 0) {
+            $response->getBody()->write(json_encode(['message' => 'Appointment deleted successfully.']));
+            return $response->withHeader('Content-Type', 'application/json')->withStatus(200);
+        } else {
+            $error = ['error' => 'Appointment not found.'];
+            $response->getBody()->write(json_encode($error));
+            return $response->withHeader('Content-Type', 'application/json')->withStatus(404);
+        }
+    } catch (PDOException $e) {
+        $error = ['error' => 'Database error: ' . $e->getMessage()];
+        $response->getBody()->write(json_encode($error));
+        return $response->withHeader('Content-Type', 'application/json')->withStatus(500);
+    }
+});
+
 ?>
