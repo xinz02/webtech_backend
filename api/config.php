@@ -4,7 +4,7 @@
     private $host = 'localhost';
     private $user = 'root';
     private $password = '';
-    private $dbname = 'wtproject';
+    private $dbname = 'wpproject';
 
 
     // Connect
