@@ -175,4 +175,75 @@ $app->delete('/appointment/{id}', function(Request $request, Response $response,
     }
 });
 
+$app->get('/appointment/{id}/comments', function(Request $request, Response $response, $args) {
+    $db = new db();
+    $conn = $db->connect();
+    $appointmentId = $args['id'];
+
+    try {
+        // Fetch comments for the specific appointment
+        $sql = "SELECT descriptions FROM comment WHERE appointmentID = :appointmentID";
+        $stmt = $conn->prepare($sql);
+        $stmt->bindValue(':appointmentID', $appointmentId);
+        $stmt->execute();
+        $comment = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        if ($comment) {
+            $response->getBody()->write(json_encode($comment));
+            return $response->withHeader('Content-Type', 'application/json')->withStatus(200);
+        } else {
+            $response->getBody()->write(json_encode(['description' => '']));
+            return $response->withHeader('Content-Type', 'application/json')->withStatus(200);
+        }
+    } catch (PDOException $e) {
+        $error = ['error' => 'Database error: ' . $e->getMessage()];
+        $response->getBody()->write(json_encode($error));
+        return $response->withHeader('Content-Type', 'application/json')->withStatus(500);
+    }
+});
+
+$app->post('/appointment/{id}/comments', function(Request $request, Response $response, $args) {
+    $db = new db();
+    $conn = $db->connect();
+    $appointmentId = $args['id'];
+    $data = $request->getParsedBody();
+
+    if (!isset($data['description'])) {
+        $error = ['error' => 'Description is required.'];
+        $response->getBody()->write(json_encode($error));
+        return $response->withHeader('Content-Type', 'application/json')->withStatus(400);
+    }
+
+    $description = $data['description'];
+
+    try {
+        // Check if comment exists
+        $sqlCheck = "SELECT * FROM comment WHERE appointmentID = :appointmentID";
+        $stmtCheck = $conn->prepare($sqlCheck);
+        $stmtCheck->bindValue(':appointmentID', $appointmentId);
+        $stmtCheck->execute();
+
+        if ($stmtCheck->rowCount() > 0) {
+            // Update existing comment
+            $sql = "UPDATE comment SET descriptions = :descriptions WHERE appointmentID = :appointmentID";
+            $stmt = $conn->prepare($sql);
+        } else {
+            // Insert new comment
+            $sql = "INSERT INTO comment (appointmentID, descriptions) VALUES (:appointmentID, :descriptions)";
+            $stmt = $conn->prepare($sql);
+        }
+
+        $stmt->bindValue(':appointmentID', $appointmentId);
+        $stmt->bindValue(':descriptions', $description);
+        $stmt->execute();
+
+        $response->getBody()->write(json_encode(['message' => 'Comment saved successfully.']));
+        return $response->withHeader('Content-Type', 'application/json')->withStatus(200);
+
+    } catch (PDOException $e) {
+        $error = ['error' => 'Database error: ' . $e->getMessage()];
+        $response->getBody()->write(json_encode($error));
+        return $response->withHeader('Content-Type', 'application/json')->withStatus(500);
+    }
+});
 ?>

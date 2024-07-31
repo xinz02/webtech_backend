@@ -153,4 +153,38 @@ $app->post('/signup', function(Request $request, Response $response, $args) {
     }
 });
 
+$app->put('/user/{userID}', function(Request $request, Response $response, $args) {
+    $db = new db();
+    $conn = $db->connect();
+    $userID = $args['userID'];
+    $data = $request->getParsedBody();
+
+    if (isset($data['name']) && isset($data['age']) && isset($data['email']) && isset($data['phone']) && isset($data['gender'])) {
+        $name = $data['name'];
+        $age = $data['age'];
+        $email = $data['email'];
+        $phone = $data['phone'];
+        $gender = $data['gender'];
+
+        $sql = "UPDATE User SET name = :name, age = :age, email = :email, phone = :phone, gender = :gender WHERE userID = :userID";
+        $stmt = $conn->prepare($sql);
+        $stmt->bindValue(':name', $name);
+        $stmt->bindValue(':age', $age);
+        $stmt->bindValue(':email', $email);
+        $stmt->bindValue(':phone', $phone);
+        $stmt->bindValue(':gender', $gender);
+        $stmt->bindValue(':userID', $userID);
+
+        try {
+            $stmt->execute();
+            return $response->withHeader('Content-Type', 'application/json')->withStatus(200);
+        } catch (PDOException $e) {
+            $error = ['error' => 'Database error: ' . $e->getMessage()];
+            return $response->withHeader('Content-Type', 'application/json')->withStatus(500)->write(json_encode($error));
+        }
+    } else {
+        $error = ['error' => 'All fields are required.'];
+        return $response->withHeader('Content-Type', 'application/json')->withStatus(400)->write(json_encode($error));
+    }
+});
 ?>
